@@ -1,6 +1,7 @@
-FROM php:8.2-cli
+# PHP 8.2 ની જગ્યાએ 8.4 વાપરો
+FROM php:8.4-cli
 
-# સિસ્ટમ લાઈબ્રેરીઓ
+# બાકીનો બધો કોડ જેવો હતો એવો જ રહેવા દો...
 RUN apt-get update && apt-get install -y \
     unzip git curl libpng-dev libonig-dev libxml2-dev zip libpq-dev
 
@@ -12,16 +13,13 @@ COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
 WORKDIR /var/www
 
-# પહેલા composer ફાઈલો કોપી કરો
 COPY composer.json composer.lock ./
 
-# Dependencies ઇન્સ્ટોલ કરો
+# અહીં પણ --ignore-platform-reqs રાખજો જ
 RUN composer install --no-scripts --no-autoloader --no-interaction --no-dev --ignore-platform-reqs
 
-# હવે બાકીનો બધો કોડ કોપી કરો
 COPY . .
 
-# --- અહીં ફેરફાર છે: Permissions પહેલા આપો, પછી dump-autoload કરો ---
 RUN mkdir -p storage/framework/cache/data \
     storage/framework/app/cache \
     storage/framework/sessions \
@@ -30,11 +28,9 @@ RUN mkdir -p storage/framework/cache/data \
     && chown -R www-data:www-data /var/www \
     && chmod -R 775 /var/www/storage /var/www/bootstrap/cache
 
-# હવે Autoloader રન કરો (હવે એરર નહીં આવે)
-RUN composer dump-autoload --optimize
+# હવે આ કમાન્ડ એરર વગર ચાલશે
+RUN composer dump-autoload --optimize --ignore-platform-reqs
 
-# પોર્ટ સેટ કરો
 EXPOSE 10000
 
-# એપ શરૂ કરો
 CMD php artisan serve --host=0.0.0.0 --port=10000
